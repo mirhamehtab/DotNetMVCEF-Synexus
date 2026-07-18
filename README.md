@@ -1,22 +1,17 @@
-# DotNetMVCEF
+## Week 2 — Authentication
 
-A simple inventory/product management system built with ASP.NET Core MVC + Entity Framework Core (Code-First). Made this as part of my Synexus internship evaluation tasks.
+Added a full login/register/logout flow using ASP.NET Core Identity.
 
-## What it does
+- Register + Login screens with validation
+- Passwords hashed via `UserManager` (never stored in plain text)
+- Cookie-based session, persists across refresh (14 days, sliding expiration)
+- `[Authorize]` on `ProductController` and `APIController` — anonymous users get redirected (MVC) or a 401 (API)
+- Logout clears the session
 
-- Add, edit, delete, and view products (basic CRUD)
-- SQL Server database, EF Core migrations for schema
-- A small REST API endpoint alongside the MVC views
+### Test account
+Email:    test@synexus.com
+Password: Test@123
 
-## Tech stack
+### Why cookies, not JWT
 
-- ASP.NET Core MVC (.NET 8)
-- Entity Framework Core (Code-First)
-- SQL Server
-
-## Running it
-
-1. Open `DotNetMVCEF.sln` in Visual Studio
-2. Update the connection string in `appsettings.json` if needed
-3. Run `Update-Database` in Package Manager Console
-4. F5 to run
+This is server-rendered MVC, not a separate SPA + API, so ASP.NET Identity's cookie auth was used instead of JWT — the browser handles the cookie automatically, and it can be marked HttpOnly so JS can't read it (avoids the XSS risk of storing a JWT in localStorage). JWT makes more sense when the frontend is a separate SPA with no shared session.

@@ -6,5 +6,7 @@
         public string Name { get; set; }
         public string Description { get; set; }
         public float Price { get; set; }  //float->real in SSMS
+        public int? CategoryId { get; set; }   // foreign key
+        public Category? Category { get; set; }  // navigation property, ? isliye kyunki EF khud fill karega
     }
 } // cant use this as it is kyuk iss ki id auto-increment hai iss liye we have to add another model that'll be used base for form

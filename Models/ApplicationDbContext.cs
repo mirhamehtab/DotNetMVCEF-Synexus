@@ -15,5 +15,7 @@ namespace DotNetMVCEF.Models
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) 
         { }
         public DbSet<Entities.Product> Products { get; set; } //products is the name of table within Database
+        public DbSet<Entities.Category> Categories { get; set; }
+
     }
 }

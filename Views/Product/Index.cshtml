@@ -1,11 +1,26 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
 }
-@model List<DotNetMVCEF.Models.Entities.Product>
 <h1>Products</h1>
+<form id="antiForgeryForm" style="display:none">
+    @Html.AntiForgeryToken()
+</form>
 <a asp-controller="Product" asp-action="Create" class="btn btn-primary float-end my-2">Add Product</a>
+
+<!-- Filter bar: search + sort -->
+<div class="row mb-3 mt-5">
+    <div class="col-md-5">
+        <input type="text" id="searchBox" class="form-control" placeholder="Search by name..." />
+    </div>
+    <div class="col-md-4">
+        <select id="sortSelect" class="form-select">
+            <option value="Name-asc">Name (A-Z)</option>
+            <option value="Name-desc">Name (Z-A)</option>
+            <option value="Price-asc">Price (Low-High)</option>
+            <option value="Price-desc">Price (High-Low)</option>
+        </select>
+    </div>
+</div>
+
 <table class="table">
     <thead>
         <tr>
@@ -16,20 +31,135 @@
             <th>Action</th>
         </tr>
     </thead>
-    @foreach(var product in Model) //data received here in model
-    {
-        <tr>
-            <td>@product.Id</td>
-            <td>@product.Name</td>
-            <td>@product.Description</td>
-            <td>@product.Price</td>
-            <td>
-                <a asp-controller="Product" asp-action="Edit" asp-route-id="@product.Id" class="btn btn-info text-white">Edit</a>
-
-                <form asp-controller="Product" asp-action="Delete" asp-route-id="@product.Id" method="post" class="d-inline">
-                    <input type="submit" class=" btn btn-danger" value="Delete" />
-                </form>
-            </td>
-        </tr>
-    }
+    <tbody id="productTableBody">
+        <!-- JS fills this in -->
+    </tbody>
 </table>
+
+<!-- Pagination controls -->
+<div class="d-flex justify-content-between align-items-center">
+    <span id="pageInfo"></span>
+    <div>
+        <button id="prevBtn" class="btn btn-outline-secondary">Previous</button>
+        <button id="nextBtn" class="btn btn-outline-secondary">Next</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // anti-forgery token, pulled from the hidden form above -- needed so the
+        // JS-built Delete forms pass ASP.NET's CSRF check
+        const antiForgeryToken = document.querySelector('#antiForgeryForm input[name=__RequestVerificationToken]').value;
+
+        // ---- current state, read from the URL if it's already there ----
+        const params = new URLSearchParams(window.location.search);
+
+        let state = {
+            page: parseInt(params.get('page')) || 1,
+            pageSize: 5,
+            search: params.get('search') || '',
+            sortBy: params.get('sortBy') || 'Name',
+            sortDir: params.get('sortDir') || 'asc'
+        };
+
+        const searchBox = document.getElementById('searchBox');
+        const sortSelect = document.getElementById('sortSelect');
+        const tableBody = document.getElementById('productTableBody');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        searchBox.value = state.search;
+        sortSelect.value = `${state.sortBy}-${state.sortDir}`;
+
+        function debounce(fn, delay) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        async function fetchAndRender() {
+            const query = new URLSearchParams({
+                page: state.page,
+                pageSize: state.pageSize,
+                search: state.search,
+                sortBy: state.sortBy,
+                sortDir: state.sortDir
+            });
+
+            history.pushState(null, '', `?${query.toString()}`);
+
+            const response = await fetch(`/api/api/products?${query.toString()}`);
+
+            if (!response.ok) {
+                tableBody.innerHTML = `<tr><td colspan="5">Something went wrong loading products.</td></tr>`;
+                return;
+            }
+
+            const result = await response.json();
+
+            renderTable(result.items);
+            renderPagination(result);
+        }
+
+        function renderTable(items) {
+            if (items.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5">No products found.</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = items.map(p => `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${p.name}</td>
+                    <td>${p.description ?? ''}</td>
+                    <td>${p.price}</td>
+                    <td>
+                        <a href="/Product/Edit/${p.id}" class="btn btn-info text-white">Edit</a>
+                        <form method="post" action="/Product/Delete/${p.id}" class="d-inline" onsubmit="return confirm('Delete this product?')">
+                            <input type="hidden" name="Id" value="${p.id}" />
+                            <input type="hidden" name="__RequestVerificationToken" value="${antiForgeryToken}" />
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPagination(result) {
+            pageInfo.textContent = `Page ${result.page} of ${result.totalPages || 1} (${result.totalCount} total)`;
+            prevBtn.disabled = result.page <= 1;
+            nextBtn.disabled = result.page >= result.totalPages;
+        }
+
+        searchBox.addEventListener('input', debounce(function () {
+            state.search = searchBox.value;
+            state.page = 1;
+            fetchAndRender();
+        }, 400));
+
+        sortSelect.addEventListener('change', function () {
+            const [sortBy, sortDir] = sortSelect.value.split('-');
+            state.sortBy = sortBy;
+            state.sortDir = sortDir;
+            state.page = 1;
+            fetchAndRender();
+        });
+
+        prevBtn.addEventListener('click', function () {
+            if (state.page > 1) {
+                state.page--;
+                fetchAndRender();
+            }
+        });
+
+        nextBtn.addEventListener('click', function () {
+            state.page++;
+            fetchAndRender();
+        });
+
+        fetchAndRender();
+    </script>
+}

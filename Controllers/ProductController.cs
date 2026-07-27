@@ -15,10 +15,17 @@ namespace DotNetMVCEF.Controllers
             _context = applicationDbContext;
         }
         // GET: ProductController
-        public ActionResult Index() //to view added products
+        /*  public ActionResult Index() //to view added products
+          {
+              var products = _context.Products.ToList(); //view in form of list
+              return View(products);
+          } */
+
+
+        // GET: ProductController
+        public ActionResult Index()
         {
-            var products = _context.Products.ToList(); //view in form of list
-            return View(products);
+            return View(); // ab data JS se API se aata hai, controller se nahi
         }
 
         // GET: ProductController/Details/5

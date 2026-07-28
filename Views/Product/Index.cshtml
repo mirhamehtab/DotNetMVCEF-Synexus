@@ -24,6 +24,7 @@
 <table class="table">
     <thead>
         <tr>
+            <th>Image</th>
             <th>ID</th>
             <th>Name</th>
             <th>Description</th>
@@ -47,11 +48,8 @@
 
 @section Scripts {
     <script>
-        // anti-forgery token, pulled from the hidden form above -- needed so the
-        // JS-built Delete forms pass ASP.NET's CSRF check
         const antiForgeryToken = document.querySelector('#antiForgeryForm input[name=__RequestVerificationToken]').value;
 
-        // ---- current state, read from the URL if it's already there ----
         const params = new URLSearchParams(window.location.search);
 
         let state = {
@@ -94,7 +92,7 @@
             const response = await fetch(`/api/api/products?${query.toString()}`);
 
             if (!response.ok) {
-                tableBody.innerHTML = `<tr><td colspan="5">Something went wrong loading products.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6">Something went wrong loading products.</td></tr>`;
                 return;
             }
 
@@ -106,12 +104,17 @@
 
         function renderTable(items) {
             if (items.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5">No products found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6">No products found.</td></tr>`;
                 return;
             }
 
             tableBody.innerHTML = items.map(p => `
                 <tr>
+                    <td>
+                        ${p.imagePath
+                            ? `<img src="${p.imagePath}" alt="${p.name}" style="width:50px;height:50px;object-fit:cover;" />`
+                            : `<span class="text-muted">No image</span>`}
+                    </td>
                     <td>${p.id}</td>
                     <td>${p.name}</td>
                     <td>${p.description ?? ''}</td>

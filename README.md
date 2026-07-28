@@ -36,3 +36,21 @@ GET /api/api/products?search=phone
 GET /api/api/products?sortBy=Price&sortDir=desc
 GET /api/api/products?page=2&pageSize=5&search=pan&sortBy=Name&sortDir=asc
 
+## Week 4 — Image Upload & Relational Data
+
+Added image upload to products — file picker, live preview, server-side validation, and secure storage.
+
+### What I built
+
+- `Product.ImagePath` (nullable string) — the actual image file lives on disk, the database only stores a relative path to it
+- `enctype="multipart/form-data"` on the Create form, plus an `IFormFile ImageFile` property on the `AddProduct` view model — this is what actually lets a file travel in the request body
+- Client-side preview using `FileReader` — shows the selected image immediately, before it's ever uploaded, purely in the browser
+- Server-side validation on `ProductController.Create`: rejects anything over 2MB, and only allows `.jpg`, `.jpeg`, `.png`, `.webp` by extension (the HTML `accept` attribute is just a UI hint, not real validation — this check is what actually matters)
+- Files are saved with a new GUID-based filename, not the user's original filename — avoids overwriting collisions and avoids trusting user-supplied file names on the server's file system
+- Files go into `wwwroot/uploads`; the product record stores `/uploads/{guid}.jpg` as `ImagePath`
+- Product list now shows a thumbnail per row, pulled straight from the API response
+
+### Note
+
+Image is optional — products created without one just show "No image" instead of a thumbnail.
+
